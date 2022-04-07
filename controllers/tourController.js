@@ -1,4 +1,5 @@
 const Tour = require('./../models/tourModel');
+const APIFeatures = require('./../utils/apiFeatures');
 
 exports.aliasTopTours = (req, res, next) => {
   req.query.limit = '5';
@@ -9,50 +10,14 @@ exports.aliasTopTours = (req, res, next) => {
 
 exports.getAllTours = async (req, res) => {
   try {
-    console.log(req.query);
-
-    // BUILD QUERY
-    // Filtering
-    const queryObj = { ...req.query }; // Destructuring will take fields out of object, then create a new object from those key-value pairs
-    const excludedFields = ['page', 'sort', 'limit', 'field'];
-    excludedFields.forEach((el) => delete queryObj[el]);
-
-    // Advanced filtering
-    let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
-
-    let query = Tour.find(JSON.parse(queryStr)); // Tour.find() will return a query, so we story it into a variable so we can chain more methods onto it
-
-    // Sorting
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      query = query.sort('-createdAt');
-    }
-
-    // Field limiting
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-      query = query.select(fields);
-    } else {
-      query = query.select('-__v'); // Exclude '__v' field that MongoDB uses when returning response to client
-    }
-
-    // Pagination
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 1 || 100;
-    const skip = (page - 1) * limit;
-
-    query = query.skip(skip).limit(limit);
-
-    if (req.query.page) {
-      const numberOfTours = await Tour.countDocuments();
-      if (skip >= numberOfTours) throw new Error('This page does not exist');
-    }
-
     // EXECUTE QUERY
-    const tours = await query;
+    // We create a new object of the APIFeatures class. In there, we are passing a query object and the queryString that's coming from Express. In each of the four methods that we call one after another, we manipulate the query. By the end, we await the result of the query, so that it can come back with all of the documents that are selected. That query then lives at the features object.
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limitFields()
+      .paginate();
+    const tours = await features.query;
 
     // SEND RESPONSE
     res.status(200).json({
