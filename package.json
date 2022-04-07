@@ -16,7 +16,9 @@
   "main": "app.js",
   "scripts": {
     "start": "nodemon server.js",
-    "start:prod": "NODE_ENV=production nodemon server.js"
+    "start:prod": "NODE_ENV=production nodemon server.js",
+    "db:delete": "node dev-data/data/import-dev-data.js --delete",
+    "db:import": "node dev-data/data/import-dev-data.js --import"
   },
   "author": "Sebastian McKelvey",
   "license": "ISC",
